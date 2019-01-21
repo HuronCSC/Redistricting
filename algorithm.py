@@ -28,3 +28,54 @@ for row in range(y):
             neighbors[(row, dist)].append((row, dist-1))
         else:
             neighbors[(row, dist)].extend([(row, dist+1), (row, dist-1)])
+
+tgtpop = sum(state.values()) / distf
+
+def findMerge(dist):
+    nbp = {}
+    for neighbor in neighbors[dist]:
+        nbp[neighbor] = pops[neighbor]
+    popDif = {}
+    for key in nbp:
+        popDif[key] = abs(tgtpop - (nbp[key] + pops[dist]))
+    merge = min(popDif, key=popDif.get)
+    return merge
+
+
+def doMerge(dist, merge, history):
+
+    # Update the history information
+    history[merge] = dist
+    for k, v in history:
+        if v == merge:
+            history[k] = dist
+
+    # Make sure that merge and dist are neighbors of each other
+    assert(dist in neighbors[merge])
+    assert(merge in neighbors[dist])
+    assert(dist not in neighbors[dist])
+    assert(merge not in neighbors[merge])
+
+    # combine dist and merge populations under dist's key in pops dictionary
+    pops[dist] += pops[merge]
+
+    # remove merge key in pops dictionary
+    del pops[merge]
+    
+    # Everything that was a neighbor of merge now needs to become a neighbor of dist
+    neighbors[dist].update(neighbors[merge])
+    neighbors[dist].remove(dist)
+    
+    # replace all occurences of merge in all values in neighbors dictionary with dist
+    for neighbor in neighbors[merge]:
+        neighbors[neighbor].remove(merge)
+        if neighbor != dist:
+            neighbors[neighbor].add(dist)
+            
+    # remove merge key from neighbors dictionary
+    del neighbors[merge]
+
+
+while len(pops) > distf:
+    dist = min(pops, key=pops.get)
+    doMerge(dist, findMerge(dist))
